@@ -1,123 +1,178 @@
+/*Libreria usada solo en Windows - debe ir antes que las demás librerias*/
 #include<windows.h>
-#include <GL/glut.h>
-#include <cstdlib>
-#include <math.h>
+/*Otras librerias necesarias*/
+#include<math.h>
 #include<iostream>
+/*Libreria del OpenGL*/
+#include<GL/glut.h>
+
 using namespace std;
-void inicio(){
-    glClearColor(1.0,1.0,1.0,0.0);//color rgb del color blanco
-    glMatrixMode(GL_PROJECTION);//proyección sobre la ventana
-    gluOrtho2D(-40,40,-40,40);//limites en pixeles de la proyección
+/*Declaramos los valores de la proyección en la ventana*/
+void iniciarProyecion()
+{
+    /*A nuestra proyección le colocamos color blanco de fondo (rgb blano= 1,1,1)*/
+    glClearColor(1.0,1.0,1.0,0.0);
+    /*Creamos la proyección*/
+    glMatrixMode(GL_PROJECTION);
+    /*Definimos los límites de nuestra proyección
+    de izquierda a derecha que vaya de -40 hasta 40
+    igual cantidad de arriba hacia abajo
+    */
+    gluOrtho2D(-40,40,-40,40);
 }
 
-void dibujarLinea(GLint x0,GLint y0,GLint xf,GLint yf){
+/*Primero dibujar la linea sin DDA*/
+void dibujarLinea(GLint x0,GLint y0, GLint xf, GLint yf)
+{
 
-for(float i=-39.5;i<40;i++){
-    glLineWidth(1);//grosor de la linea
+    /*Dibujar malla
+    para que el pixel se vea pintado dentro del cuadro
+    aumentamos 0.5 unidades desde el inicio del recorrido
+    tanto para x como para y
+
+    asi sucesivamente probar hasta que coincida
+    incluso usar la malla en 3d
+    */
+    glColor3f(0.0,1.0,0.0);/*Color verde*/
+    glPointSize(1);
+
+    /*usar de preferencia en f (porque el aumento se declaró iniciando en 0.5 mas)*/
+
+    for(float i=-39.5; i<40; i++)
+    {
+
+        glBegin(GL_LINES);
+        glVertex3f(i,40,1);
+        glVertex3f(i,-40,1);
+        glVertex3f(40,i,1);
+        glVertex3f(-40,i,1);
+        glEnd();
+
+    }
+    /*Dibujar eje de coordenadas*/
+    glColor3f(0.0,0.0,1.0);/*Color azul*/
+
+    /*Eje 'x' y 'y', recordar que va desde -40 hasta 40*/
     glBegin(GL_LINES);
-    glColor3f( 0, 1, 0);
-    glVertex3f(i,40,-1);
-    glVertex3f(i,-40,-1);
-	
+    glVertex2i(40,0);
+    glVertex2i(-40,0);
+    glVertex2i(0,40);
+    glVertex2i(0,-40);
     glEnd();
+
+    /*Eje y, recordar que va desde -40 hasta 40*/
+    glBegin(GL_LINES);
+
+    glEnd();
+
+    /*Para cualquier gráfico que se dibuje generalmente se hace mediante función
+    así*/
+    glBegin(GL_LINES);/*Inicio de la función, con el tipo de figura*/
+    /*Declaramos colo de la linea*/
+    glColor3f(0.0,0.0,0.0);/*Color negro en rgb= 0,0,0 y es 3f por ser "float" los parametros*/
+    /*Posición inicial y final de la linea*/
+    glVertex2i(x0,y0);
+    glVertex2i(xf,yf);
+    glEnd();/*Fin de la función*/
 }
-for(float i=-39.5;i<40;i++){
-    glLineWidth(1);
-    glBegin(GL_LINES);
-    glColor3f( 0, 1, 0);
-    glVertex3f(40,i,-1);
-    glVertex3f(-40,i,-1);
-    glEnd();
-}
-    glLineWidth(2);
-    glBegin(GL_LINES);
-    glColor3f( 0, 0, 0);
-    glVertex3f(0,40,-1);
-    glVertex3f(0,-40,-1);
-    glEnd();
 
-    glBegin(GL_LINES);
-    glColor3f( 0, 0, 0);
-    glVertex3f(40,0,0);
-    glVertex3f(-40,0,0);
-    glEnd();
-
-    glLineWidth(2);
-    glBegin(GL_LINES);
-    glColor3f(1.0,0.5,0.2);
-    glVertex2f(x0,y0);
-    glVertex2f(xf,yf);
-    glEnd();
-    glFlush();
-
-}
-void setPixel(GLint x, GLint y){
-    glColor3f(0.1,0.4,0.2);
-    glPointSize(9);
+void setPixel(GLint x, GLint y)
+{
+    /*declaramos el color del pixel pintado*/
+    glColor3f(1.0,0.0,0.0);/*Color rojo*/
+    glPointSize(8);/*tamaño del pixel será de 5 (al ejecutar se entenderá mejor)*/
+    /*funcion*/
     glBegin(GL_POINTS);
     glVertex2i(x,y);
     glEnd();
-    glFlush();
 }
-void DDA (GLint x1,GLint y1,GLint x2,GLint y2)
+
+/*Algoritmo DDA*/
+
+void dda(GLint x0,GLint y0, GLint xf, GLint yf)
 {
-   float ax,ay,x,y,res;
-   GLint i;
-   if(abs(x2-x1)>=abs(y2-y1))
-    //si la variacion en x es mayor o igual que la variacion en y
-    res=abs(x2-x1);
-        else
-    //si la variacion en y es mayor que la variacion en x
-    res=abs(y2-y1);
+    GLint i;
+    float x,y,ax,ay,res;
 
-   ax=(x2-x1)/res;//el valor a aumentar en x
-   ay=(y2-y1)/res;//el valor a aumentar en y
+    /*Primero verificamos si la variación de x es mayor que la de y*/
+    if(abs(xf-x0)>=abs(yf-y0))
+    {
+        res=abs(xf-x0);
+    }
+    else
+    {
+        res=abs(yf-y0);
+    }
 
-   //se realiza casteo a float porque los resultados de la división es un real
+    /*
+    en el caso de que varia mas en x, entonces res queda con su valor absoluto
+    si y varia mas, entonces res queda con el valor absoluto de y
 
-   x=(float)x1;
-   y=(float)y1;
+    ahora los aumentos(ax y ay)
+    */
 
-   i=0;
-   while(i<=res)
-   {
+    ax=(xf-x0)/res;
+    ay=(yf-y0)/res;
+
+    /*En caso de que res sea el valor absoluto de la variación de x, el ax queda en 1 y ay en la pendiente
+    y viceversa si res es el valor absoluto de la variación de y*/
+
+    i=0;
+
+    x=(float)x0;
+    y=(float)y0;
+
+    /*se realiza el casteo para pasar a float los valores, ya que se necesita su resultado en decimales*/
+
+    while(i<=res)
+    {
+
         setPixel(roundf(x),roundf(y));
+        cout<<roundf(x)<<" , "<<roundf(y)<<endl;
         x=x+ax;
         y=y+ay;
         i++;
-   }
-}
-void drawMyLine(void)
-{
- glClear(GL_COLOR_BUFFER_BIT);
-
-                             // MODIFICAR PUNTOS
-                                     GLint x0 =  -2;
-                                     GLint y0 =  -1;
-                                     GLint xf =  1;
-                                     GLint yf =  7;
-									 
- 
-DDA(x0,y0,xf,yf);
- dibujarLinea(x0,y0,xf,yf);
-
+    }
 }
 
-int main(int argc, char *argv[])
+/*Función que realizará el pintado*/
+void draw(void)
 {
- glutInit(&argc,argv);
+    /*LIMPIA BUFFER*/
+    glClear(GL_COLOR_BUFFER_BIT);
 
- glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+    /*Declaramos variables*/
+    GLint
+                                     x0=-10,
+                                     y0=-5,
+                                     xf=5,
+                                     yf=35;
 
- glutInitWindowSize(800,600);
+    /*Colocamos antes del pintado sin dda por superposición*/
+    dda(x0,y0,xf,yf);
+    dibujarLinea(x0,y0,xf,yf);
+    glFlush();/*Pinta lo dibujado*/
 
- glutInitWindowPosition(300,100);
+}
 
- glutCreateWindow("Linea DDA");
+int main (int argc, char* argv[])
+{
+    /*Iniciamos Glut*/
+    glutInit(&argc,argv);
+    /*Modo gráfico COLORES: RGB*/
+    glutInitDisplayMode(GLUT_SINGLE|GLUT_RGB);
+    /*Definimos el tamaño de la ventana*/
+    glutInitWindowSize(800,600);
+    /*Definimos posición donde se ubicará en pantalla*/
+    glutInitWindowPosition(300,100);
 
- inicio();
+    /*Crear la ventana que contedrá el lienzo*/
+    glutCreateWindow("DDA line");
 
- glutDisplayFunc(drawMyLine);
+    iniciarProyecion();
+    /*Llamamos la función a dibujar*/
+    glutDisplayFunc(draw);
+    /*Constante redibujado*/
+    glutMainLoop();
 
- glutMainLoop();
 }
